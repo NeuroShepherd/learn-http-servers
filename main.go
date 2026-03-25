@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sync/atomic"
 )
@@ -17,7 +18,7 @@ func main() {
 	mux.Handle("/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hits: " + string(cfg.getFileserverHits())))
+		w.Write([]byte("Hits: " + fmt.Sprintf("%d", cfg.getFileserverHits())))
 	}))
 	mux.Handle("/reset", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits.Store(0)
