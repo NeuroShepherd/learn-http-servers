@@ -2,4 +2,4 @@
 
 source .env
 cd sql/schema
-goose postgres $POSTGRES_URL $1
+goose postgres $DB_URL $1
