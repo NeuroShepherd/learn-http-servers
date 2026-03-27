@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
+
+	"github.com/neuroshepherd/learn-http-servers/internal/database"
 )
 
 type APIConfig struct {
 	fileserverHits atomic.Int32
+	DB             *database.Queries
 }
 
 func (cfg *APIConfig) MiddlewareMetricsInc(next http.Handler) http.Handler {
