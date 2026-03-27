@@ -7,12 +7,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/neuroshepherd/learn-http-servers/internal/auth"
+	"github.com/neuroshepherd/learn-http-servers/internal/database"
 )
 
 func (cfg *APIConfig) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	type CreateUserRequest struct {
-		Email string `json:"email"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -28,7 +31,18 @@ func (cfg *APIConfig) HandlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, err := cfg.DB.CreateUser(r.Context(), createUserReq.Email)
+	hashedPassword, err := auth.HashPassword(createUserReq.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to hash password")
+		return
+	}
+
+	userParams := database.CreateUserParams{
+		Email:          createUserReq.Email,
+		HashedPassword: hashedPassword,
+	}
+
+	user, err := cfg.DB.CreateUser(r.Context(), userParams)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to create user")
 		return
