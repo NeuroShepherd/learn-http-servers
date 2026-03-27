@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	_ "github.com/lib/pq"
 	"github.com/neuroshepherd/learn-http-servers/handlers"
 )
 
