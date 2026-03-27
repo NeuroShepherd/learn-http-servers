@@ -6,4 +6,4 @@ RETURNING *;
 -- name: GetAllChirps :many
 SELECT *
 FROM chirps
-ORDER BY created_at DESC;
+ORDER BY created_at ASC;
