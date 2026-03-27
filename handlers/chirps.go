@@ -1,0 +1,68 @@
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/neuroshepherd/learn-http-servers/internal/database"
+)
+
+func (cfg *APIConfig) HandlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+	type ReceivedChirpRequest struct {
+		Body   string    `json:"body"`
+		UserId uuid.UUID `json:"user_id"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var receivedChirpReq ReceivedChirpRequest
+	err := decoder.Decode(&receivedChirpReq)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	if len(receivedChirpReq.Body) == 0 {
+		respondWithError(w, http.StatusBadRequest, "Chirp body cannot be empty")
+		return
+	}
+
+	if len(receivedChirpReq.Body) > 140 {
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
+		return
+	}
+
+	if receivedChirpReq.UserId == uuid.Nil {
+		respondWithError(w, http.StatusBadRequest, "User ID cannot be empty")
+		return
+	}
+
+	chirp, err := cfg.DB.CreateChirp(r.Context(), database.CreateChirpParams{
+		Body:   receivedChirpReq.Body,
+		UserID: receivedChirpReq.UserId,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create chirp")
+		return
+	}
+
+	type CreateChirpResponse struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Body      string    `json:"body"`
+		UserID    uuid.UUID `json:"user_id"`
+	}
+
+	respBody := CreateChirpResponse{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserID:    chirp.UserID,
+	}
+
+	respondWithJSON(w, http.StatusCreated, respBody)
+
+}
