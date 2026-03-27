@@ -35,6 +35,7 @@ func main() {
 	mux.Handle("POST /admin/reset", cfg.HandlerMetricsReset())
 	mux.Handle("GET /api/healthz", handlers.HandlerHealth())
 	mux.HandleFunc("POST /api/validate_chirp", handlers.HandlerValidateChirpy)
+	mux.HandleFunc("POST /api/users", cfg.HandlerCreateUser)
 
 	server.ListenAndServe()
 }
