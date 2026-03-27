@@ -11,6 +11,7 @@ import (
 type APIConfig struct {
 	fileserverHits atomic.Int32
 	DB             *database.Queries
+	Platform       string
 }
 
 func (cfg *APIConfig) MiddlewareMetricsInc(next http.Handler) http.Handler {
@@ -36,14 +37,5 @@ func (cfg *APIConfig) HandlerMetrics() http.HandlerFunc {
 				</body>
 			</html>`, cfg.GetFileserverHits(),
 		)))
-	})
-}
-
-func (cfg *APIConfig) HandlerMetricsReset() http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileserverHits.Store(0)
-		w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
 	})
 }

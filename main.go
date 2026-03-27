@@ -32,7 +32,7 @@ func main() {
 	cfg := &handlers.APIConfig{DB: dbQueries}
 	mux.Handle("/app/", cfg.MiddlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(".")))))
 	mux.Handle("GET /admin/metrics", cfg.HandlerMetrics())
-	mux.Handle("POST /admin/reset", cfg.HandlerMetricsReset())
+	mux.HandleFunc("POST /admin/reset", cfg.HandlerReset)
 	mux.Handle("GET /api/healthz", handlers.HandlerHealth())
 	mux.HandleFunc("POST /api/validate_chirp", handlers.HandlerValidateChirpy)
 	mux.HandleFunc("POST /api/users", cfg.HandlerCreateUser)
