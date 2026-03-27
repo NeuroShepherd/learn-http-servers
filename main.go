@@ -39,6 +39,7 @@ func main() {
 	mux.HandleFunc("POST /api/users", cfg.HandlerCreateUser)
 	mux.HandleFunc("POST /api/chirps", cfg.HandlerCreateChirp)
 	mux.HandleFunc("GET /api/chirps", cfg.HandlerGetAllChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.HandlerGetChirpByID)
 
 	server.ListenAndServe()
 }

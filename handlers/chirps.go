@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -94,4 +95,37 @@ func (cfg *APIConfig) HandlerGetAllChirps(w http.ResponseWriter, r *http.Request
 	}
 
 	respondWithJSON(w, http.StatusOK, respBody)
+}
+
+func (cfg *APIConfig) HandlerGetChirpByID(w http.ResponseWriter, r *http.Request) {
+	chirpID, err := uuid.Parse(r.PathValue("chirpID"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid chirp ID")
+		return
+	}
+
+	chirp, err := cfg.DB.GetChirpByID(context.Background(), chirpID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Chirp not found")
+		return
+	}
+
+	type GetChirpResponse struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Body      string    `json:"body"`
+		UserID    uuid.UUID `json:"user_id"`
+	}
+
+	respBody := GetChirpResponse{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserID:    chirp.UserID,
+	}
+
+	respondWithJSON(w, http.StatusOK, respBody)
+
 }
