@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/neuroshepherd/learn-http-servers/internal/auth"
 	"github.com/neuroshepherd/learn-http-servers/internal/database"
 )
 
 func (cfg *APIConfig) HandlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type ReceivedChirpRequest struct {
-		Body   string    `json:"body"`
-		UserId uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -34,14 +34,23 @@ func (cfg *APIConfig) HandlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if receivedChirpReq.UserId == uuid.Nil {
-		respondWithError(w, http.StatusBadRequest, "User ID cannot be empty")
+	// validate the jwt token from request header and make sure user ID from token matches
+	// the user ID in the request body. If not, return 401 unauthorized
+	tokenString, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Missing or invalid Authorization header")
+		return
+	}
+
+	userIDFromToken, err := auth.ValidateJWT(tokenString, cfg.JWTSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid token")
 		return
 	}
 
 	chirp, err := cfg.DB.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   receivedChirpReq.Body,
-		UserID: receivedChirpReq.UserId,
+		UserID: userIDFromToken,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to create chirp")
