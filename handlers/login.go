@@ -50,7 +50,7 @@ func (cfg *APIConfig) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if the password is correct, we need to generate a JWT token and return it in the response
-	respJWT, err := auth.MakeJWT(user.ID, cfg.JWTSecret, time.Duration(loginReq.ExpiresInSeconds))
+	respJWT, err := auth.MakeJWT(user.ID, cfg.JWTSecret, time.Duration(loginReq.ExpiresInSeconds)*time.Second)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to generate JWT token")
 		return
