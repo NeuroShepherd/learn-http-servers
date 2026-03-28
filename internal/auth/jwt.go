@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -46,4 +48,20 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	}
 
 	return userID, nil
+}
+
+func GetBearerToken(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", http.ErrNoCookie
+	}
+
+	// look for Bearer TOKEN_STRING and get the token only
+	// use string package to split by space and get the second part
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return "", http.ErrNoCookie
+	}
+
+	return strings.TrimSpace(parts[1]), nil
 }
