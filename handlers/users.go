@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -64,4 +65,70 @@ func (cfg *APIConfig) HandlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	respondWithJSON(w, http.StatusCreated, respBody)
 
+}
+
+func (cfg *APIConfig) HandlerUpdateUser(w http.ResponseWriter, r *http.Request) {
+	bearerToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Missing token")
+		return
+	}
+
+	userID, err := auth.ValidateJWT(bearerToken, cfg.JWTSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid token")
+		return
+	}
+
+	type UpdateUserRequest struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var updateUserReq UpdateUserRequest
+	err = decoder.Decode(&updateUserReq)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	if len(updateUserReq.Email) == 0 || strings.ReplaceAll(updateUserReq.Email, " ", "") == "" {
+		respondWithError(w, http.StatusBadRequest, "Email cannot be empty")
+		return
+	}
+
+	hashedPassword, err := auth.HashPassword(updateUserReq.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to hash password")
+		return
+	}
+
+	updateParams := database.UpdateUserInfoParams{
+		ID:             userID,
+		Email:          updateUserReq.Email,
+		HashedPassword: hashedPassword,
+	}
+
+	user, err := cfg.DB.UpdateUserInfo(context.Background(), updateParams)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to update user")
+		return
+	}
+
+	type UpdateUserResponse struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Email     string    `json:"email"`
+	}
+
+	respBody := UpdateUserResponse{
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email:     user.Email,
+	}
+
+	respondWithJSON(w, http.StatusOK, respBody)
 }
