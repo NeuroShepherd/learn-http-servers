@@ -45,6 +45,7 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", cfg.HandlerRefreshToken)
 	mux.HandleFunc("POST /api/revoke", cfg.HandlerRevokeToken)
 	mux.HandleFunc("PUT /api/users/", cfg.HandlerUpdateUser)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", cfg.HandlerDeleteChirp)
 
 	server.ListenAndServe()
 }
