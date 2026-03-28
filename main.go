@@ -15,6 +15,7 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	jwtSecret := os.Getenv("JWT_SECRET")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -30,7 +31,7 @@ func main() {
 		Addr:    ":8080",
 	}
 
-	cfg := &handlers.APIConfig{DB: dbQueries, Platform: platform}
+	cfg := &handlers.APIConfig{DB: dbQueries, Platform: platform, JWTSecret: jwtSecret}
 	mux.Handle("/app/", cfg.MiddlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(".")))))
 	mux.Handle("GET /admin/metrics", cfg.HandlerMetrics())
 	mux.HandleFunc("POST /admin/reset", cfg.HandlerReset)
