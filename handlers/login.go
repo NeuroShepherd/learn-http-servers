@@ -9,13 +9,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/neuroshepherd/learn-http-servers/internal/auth"
+	"github.com/neuroshepherd/learn-http-servers/internal/database"
 )
 
 func (cfg *APIConfig) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	type LoginRequest struct {
-		Password         string `json:"password"`
-		Email            string `json:"email"`
-		ExpiresInSeconds int    `json:"expires_in_seconds"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -29,10 +29,6 @@ func (cfg *APIConfig) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	if len(loginReq.Email) == 0 || strings.ReplaceAll(loginReq.Email, " ", "") == "" {
 		respondWithError(w, http.StatusBadRequest, "Email cannot be empty")
 		return
-	}
-
-	if loginReq.ExpiresInSeconds <= 0 || loginReq.ExpiresInSeconds > 60*60 {
-		loginReq.ExpiresInSeconds = 60 * 60
 	}
 
 	// need a sql query to get users my email
@@ -50,25 +46,43 @@ func (cfg *APIConfig) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if the password is correct, we need to generate a JWT token and return it in the response
-	respJWT, err := auth.MakeJWT(user.ID, cfg.JWTSecret, time.Duration(loginReq.ExpiresInSeconds)*time.Second)
+	respJWT, err := auth.MakeJWT(user.ID, cfg.JWTSecret, time.Hour*1)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to generate JWT token")
 		return
 	}
 
+	refreshJWT := auth.MakeRefreshToken()
+
+	// insert to database the refresh token with user ID and expiry date (60 days)
+	// don't need the return value from the database, but we do need to check for errors
+	_, err = cfg.DB.CreateRefreshToken(context.Background(), database.CreateRefreshTokenParams{
+		Token:     refreshJWT,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(time.Hour * 24 * 60), // 60 days
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create refresh token")
+		return
+	}
+
 	type LoginResponse struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-		JWT       string    `json:"token"`
+		ID           uuid.UUID `json:"id"`
+		CreatedAt    time.Time `json:"created_at"`
+		UpdatedAt    time.Time `json:"updated_at"`
+		Email        string    `json:"email"`
+		JWT          string    `json:"token"`
+		RefreshToken string    `json:"refresh_token"`
 	}
 
 	respondWithJSON(w, http.StatusOK, LoginResponse{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-		JWT:       respJWT,
+		ID:           user.ID,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
+		Email:        user.Email,
+		JWT:          respJWT,
+		RefreshToken: refreshJWT,
 	})
 }
