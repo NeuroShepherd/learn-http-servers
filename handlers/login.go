@@ -69,20 +69,22 @@ func (cfg *APIConfig) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type LoginResponse struct {
-		ID           uuid.UUID `json:"id"`
-		CreatedAt    time.Time `json:"created_at"`
-		UpdatedAt    time.Time `json:"updated_at"`
-		Email        string    `json:"email"`
-		JWT          string    `json:"token"`
-		RefreshToken string    `json:"refresh_token"`
+		ID              uuid.UUID `json:"id"`
+		CreatedAt       time.Time `json:"created_at"`
+		UpdatedAt       time.Time `json:"updated_at"`
+		Email           string    `json:"email"`
+		JWT             string    `json:"token"`
+		RefreshToken    string    `json:"refresh_token"`
+		ChirpyRedStatus bool      `json:"is_chirpy_red"`
 	}
 
 	respondWithJSON(w, http.StatusOK, LoginResponse{
-		ID:           user.ID,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
-		Email:        user.Email,
-		JWT:          respJWT,
-		RefreshToken: refreshJWT,
+		ID:              user.ID,
+		CreatedAt:       user.CreatedAt,
+		UpdatedAt:       user.UpdatedAt,
+		Email:           user.Email,
+		JWT:             respJWT,
+		RefreshToken:    refreshJWT,
+		ChirpyRedStatus: user.IsChirpyRed,
 	})
 }
