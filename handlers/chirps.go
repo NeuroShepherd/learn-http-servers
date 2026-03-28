@@ -183,6 +183,16 @@ func (cfg *APIConfig) HandlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *APIConfig) HandlerUpdateChirpyRedStatus(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Missing or invalid API key")
+		return
+	}
+
+	if apiKey != cfg.PolkaKey {
+		respondWithError(w, http.StatusUnauthorized, "Invalid API key")
+		return
+	}
 	type PolkaWebhookRequest struct {
 		Event string `json:"event"`
 		Data  struct {
@@ -192,7 +202,7 @@ func (cfg *APIConfig) HandlerUpdateChirpyRedStatus(w http.ResponseWriter, r *htt
 
 	decoder := json.NewDecoder(r.Body)
 	var webhookReq PolkaWebhookRequest
-	err := decoder.Decode(&webhookReq)
+	err = decoder.Decode(&webhookReq)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
 		return
