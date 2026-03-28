@@ -42,6 +42,7 @@ func main() {
 	mux.HandleFunc("GET /api/chirps", cfg.HandlerGetAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.HandlerGetChirpByID)
 	mux.HandleFunc("POST /api/login", cfg.HandlerLogin)
+	mux.HandleFunc("POST /api/refresh", cfg.HandlerRefreshToken)
 
 	server.ListenAndServe()
 }
