@@ -80,6 +80,51 @@ func (cfg *APIConfig) HandlerCreateChirp(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *APIConfig) HandlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
+
+	// this is very poorly designed, but in order to keep the code in line with the expected
+	// response format for the bootdev assignment, i am not renaming or reworking the SQLC
+	// queries and response structs. In a real world application, I would likely have separate
+	// queries and response structs for getting all chirps vs getting chirps by author ID, rather
+	// than overloading the GetAllChirps query to handle both cases based on the presence of a query
+	// parameter OR I would at least rename the GetAllChirps query to something more generic like
+	// GetChirps and then have the function take in an optional author ID parameter.
+	authorString := r.URL.Query().Get("author_id")
+	if authorString != "" {
+		authorID, err := uuid.Parse(authorString)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid author_id")
+			return
+		}
+
+		chirpsByAuthor, err := cfg.DB.GetChirpsByAuthorID(r.Context(), authorID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to retrieve chirps by author")
+			return
+		}
+
+		type GetChirpsByAuthorResponse struct {
+			ID        uuid.UUID `json:"id"`
+			CreatedAt time.Time `json:"created_at"`
+			UpdatedAt time.Time `json:"updated_at"`
+			Body      string    `json:"body"`
+			UserID    uuid.UUID `json:"user_id"`
+		}
+
+		respBody := make([]GetChirpsByAuthorResponse, len(chirpsByAuthor))
+		for i, chirp := range chirpsByAuthor {
+			respBody[i] = GetChirpsByAuthorResponse{
+				ID:        chirp.ID,
+				CreatedAt: chirp.CreatedAt,
+				UpdatedAt: chirp.UpdatedAt,
+				Body:      chirp.Body,
+				UserID:    chirp.UserID,
+			}
+		}
+
+		respondWithJSON(w, http.StatusOK, respBody)
+		return
+	}
+
 	chirps, err := cfg.DB.GetAllChirps(r.Context())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve chirps")
