@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -174,6 +176,43 @@ func (cfg *APIConfig) HandlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 	err = cfg.DB.DeleteChirpByID(context.Background(), chirpID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to delete chirp")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (cfg *APIConfig) HandlerUpdateChirpyRedStatus(w http.ResponseWriter, r *http.Request) {
+	type PolkaWebhookRequest struct {
+		Event string `json:"event"`
+		Data  struct {
+			UserID uuid.UUID `json:"user_id"`
+		} `json:"data"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var webhookReq PolkaWebhookRequest
+	err := decoder.Decode(&webhookReq)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	if webhookReq.Event != "user.upgraded" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	_, err = cfg.DB.UpdateUserChirpyRedStatus(context.Background(), database.UpdateUserChirpyRedStatusParams{
+		ID:          webhookReq.Data.UserID,
+		IsChirpyRed: true,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		respondWithError(w, http.StatusNotFound, "User not found")
+		return
+	}
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to update user status")
 		return
 	}
 
