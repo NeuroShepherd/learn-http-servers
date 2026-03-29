@@ -88,7 +88,7 @@ func (cfg *APIConfig) HandlerGetAllChirps(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if sortAscDesc != "" {
+	if sortAscDesc == "" {
 		sortAscDesc = "asc"
 	}
 
