@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -81,6 +82,16 @@ func (cfg *APIConfig) HandlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 func (cfg *APIConfig) HandlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
 
+	sortAscDesc := r.URL.Query().Get("sort")
+	if sortAscDesc != "" && sortAscDesc != "asc" && sortAscDesc != "desc" {
+		respondWithError(w, http.StatusBadRequest, "Invalid sort parameter")
+		return
+	}
+
+	if sortAscDesc != "" {
+		sortAscDesc = "asc"
+	}
+
 	// this is very poorly designed, but in order to keep the code in line with the expected
 	// response format for the bootdev assignment, i am not renaming or reworking the SQLC
 	// queries and response structs. In a real world application, I would likely have separate
@@ -121,6 +132,18 @@ func (cfg *APIConfig) HandlerGetAllChirps(w http.ResponseWriter, r *http.Request
 			}
 		}
 
+		// sort the chirps by created_at based on sortAscDesc
+		switch sortAscDesc {
+		case "asc":
+			sort.Slice(respBody, func(i, j int) bool {
+				return respBody[i].CreatedAt.Before(respBody[j].CreatedAt)
+			})
+		case "desc":
+			sort.Slice(respBody, func(i, j int) bool {
+				return respBody[i].CreatedAt.After(respBody[j].CreatedAt)
+			})
+		}
+
 		respondWithJSON(w, http.StatusOK, respBody)
 		return
 	}
@@ -148,6 +171,17 @@ func (cfg *APIConfig) HandlerGetAllChirps(w http.ResponseWriter, r *http.Request
 			Body:      chirp.Body,
 			UserID:    chirp.UserID,
 		}
+	}
+
+	switch sortAscDesc {
+	case "asc":
+		sort.Slice(respBody, func(i, j int) bool {
+			return respBody[i].CreatedAt.Before(respBody[j].CreatedAt)
+		})
+	case "desc":
+		sort.Slice(respBody, func(i, j int) bool {
+			return respBody[i].CreatedAt.After(respBody[j].CreatedAt)
+		})
 	}
 
 	respondWithJSON(w, http.StatusOK, respBody)
